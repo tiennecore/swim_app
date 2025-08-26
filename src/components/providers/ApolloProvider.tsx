@@ -1,19 +1,14 @@
-// src/components/providers/ApolloProvider.tsx
-'use client'
+"use client";
 
-import { ApolloClient, ApolloProvider, InMemoryCache } from '@apollo/client';
+import { ApolloClient, InMemoryCache, ApolloProvider as Provider } from "@apollo/client";
+import { ReactNode } from "react";
 
-// Crée une instance du client Apollo
-function createApolloClient() {
-    return new ApolloClient({
-        // L'URL de votre API GraphQL que nous avons créée précédemment
-        uri: '/api/graphql',
-        // Un cache pour stocker les résultats des requêtes et améliorer les performances
-        cache: new InMemoryCache(),
-    });
-}
+const client = new ApolloClient({
+    uri: "/api/graphql", // ton endpoint Next.js
+    cache: new InMemoryCache(),
+    credentials: "include", // utile si tu utilises Supabase avec cookies/session
+});
 
-export function AppApolloProvider({ children }: { children: React.ReactNode }) {
-    const client = createApolloClient();
-    return <ApolloProvider client={client}>{children}</ApolloProvider>;
+export function ApolloProvider({ children }: { children: ReactNode }) {
+    return <Provider client={client}>{children}</Provider>;
 }

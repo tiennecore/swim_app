@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,140 +5,110 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["public", "auth"]
 }
 
-// --- MODÈLES POUR L'APPLICATION ---
+// ============================
+// AUTH.SCHEMA → User
+// ============================
+model User {
+  id        String   @id @db.Uuid
+  email     String?  @unique
+  profile   Profile?
 
-// Modèle pour les profils utilisateur, lié à Supabase Auth
-model profiles {
-  id                    String    @id @default(uuid())
-  name                  String?
-  
-  // Préférences utilisateur avec valeurs par défaut
-  defaultRestTime       Int       @default(20)
-  defaultDistance       Int       @default(100)
-  defaultPoolLength     Int       @default(25)
-
-  // Relations vers les éléments personnalisés par l'utilisateur
-  customEquipments      CustomEquipment[]
-  customBreathingRhythms CustomBreathingRhythm[]
-  
-  // Relation vers les entraînements et les likes de l'utilisateur
-  workouts              Workout[]
-  likes                 Like[]
+  @@map("users")
+  @@schema("auth")
 }
 
-// Modèles pour les entraînements
+// ============================
+// PUBLIC.SCHEMA → Profile
+// ============================
+model Profile {
+  id       String   @id @db.Uuid
+  user     User?    @relation(fields: [id], references: [id])
+  workouts Workout[]
+  likes    Like[]
+
+  @@schema("public")
+}
+
+// ============================
+// PUBLIC.SCHEMA → Workout
+// ============================
 model Workout {
-  id          String       @id @default(cuid())
-  name        String
-  workoutType WorkoutType?
-  creatorName String?
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profile   Profile? @relation(fields: [profileId], references: [id])
+  profileId String?  @db.Uuid
 
-  profileId String?
-  profile   profiles? @relation(fields: [profileId], references: [id])
-  
+  name      String
   blocks    Block[]
+  likes     Like[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([profileId])
+  @@index([createdAt])
+  @@schema("public")
 }
 
+// ============================
+// PUBLIC.SCHEMA → Block
+// ============================
 model Block {
-  id          String     @id @default(cuid())
-  name        String
-  repetitions Int        @default(1)
-  workoutId   String
-  workout     Workout    @relation(fields: [workoutId], references: [id], onDelete: Cascade)
-  exercises   Exercise[]
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workout   Workout  @relation(fields: [workoutId], references: [id])
+  workoutId String   @db.Uuid
+
+  name      String
+  exercises Exercise[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workoutId])
+  @@schema("public")
 }
 
+// ============================
+// PUBLIC.SCHEMA → Exercise
+// ============================
 model Exercise {
-  id              String    @id @default(cuid())
-  
-  intensity       Intensity?
-  equipment       String[]
-  breathingRhythm Int?
-  duration        Int?
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  block     Block    @relation(fields: [blockId], references: [id])
+  blockId   String   @db.Uuid
 
-  category  ExerciseCategory
-  unit      ExerciseUnit
-  value     Int
-  stroke    StrokeType
-  drill     String?
-  details   String
-  
-  blockId String
-  block   Block  @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  category   String
+  value      Int?
+  unit       String?
+  repetitions Int?
+  duration   Int?
+  drill      String?
+  equipment  String[] @db.Text
+  details    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([blockId])
+  @@schema("public")
 }
 
-// --- MODÈLES POUR LES DONNÉES PERSONNALISÉES ET SOCIALES ---
-
-model CustomEquipment {
-  id          String   @id @default(cuid())
-  name        String
-  profileId   String
-  profile     profiles @relation(fields: [profileId], references: [id])
-}
-
-model CustomBreathingRhythm {
-  id          String   @id @default(cuid())
-  value       String
-  profileId   String
-  profile     profiles @relation(fields: [profileId], references: [id])
-}
-
+// ============================
+// PUBLIC.SCHEMA → Like
+// ============================
 model Like {
-  id               String   @id @default(cuid())
-  workoutSignature String
-  createdAt        DateTime @default(now())
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profile   Profile? @relation(fields: [profileId], references: [id])
+  profileId String?  @db.Uuid
 
-  profileId        String?
-  anonymousId      String?
+  workout   Workout? @relation(fields: [workoutId], references: [id])
+  workoutId String?  @db.Uuid
 
-  profile          profiles? @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 
-  @@unique([profileId, workoutSignature])
-  @@unique([anonymousId, workoutSignature])
-}
-
-// --- ENUMS (LISTES DE CHOIX PRÉDÉFINIES) ---
-
-enum ExerciseCategory {
-  ECHAUFFEMENT
-  EXERCICE
-  RECUPERATION
-  FIN_DE_SEANCE
-}
-
-enum ExerciseUnit {
-  DISTANCE // en mètres
-  TEMPS    // en secondes
-}
-
-enum StrokeType {
-  NAGE_LIBRE
-  BRASSE
-  CRAWL
-  DOS_CRAWLE
-  PAPILLON
-  QUATRE_NAGES
-  MIX
-  DRILLS
-  NON_DEFINI
-}
-
-enum Intensity {
-  APPLIQUE
-  LENT
-  ENDURANCE
-  RAPIDE
-  SPRINT
-  PROGRESSIF
-  DEGRESSIF
-}
-
-enum WorkoutType {
-  ENDURANCE
-  VITESSE_PUISSANCE
-  TECHNIQUE
-  RECUPERATION
-  MIXTE
+  @@index([workoutId])
+  @@index([profileId])
+  @@schema("public")
 }
