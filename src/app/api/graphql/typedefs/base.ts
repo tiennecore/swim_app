@@ -9,20 +9,36 @@ export const baseTypeDefs = gql`
 
   type Profile {
     id: ID!
+    name: String!
     user: User
     workouts: [Workout!]!
     likes: [Like!]!
+  }
+enum WorkoutType {
+    ENDURANCE
+    VITESSE_PUISSANCE
+    TECHNIQUE
+    RECUPERATION
+    MIXTE
   }
 
   type Workout {
     id: ID!
     profile: Profile
     name: String!
+    description: String
+    totalDistance: Int!
+    creatorName: String!
+    materials: [String!]!
+    isAddedByUser: Boolean!
+    type: WorkoutType!
     blocks: [Block!]!
     likes: [Like!]!
     createdAt: String!
     updatedAt: String!
   }
+
+  
 
   type Block {
     id: ID!
@@ -42,10 +58,18 @@ export const baseTypeDefs = gql`
     repetitions: Int
     duration: Int
     drill: String
-    equipment: [String!]   # ✅ Prisma : String[]
+    equipment: [String!]
+    type: ExerciseType!
     details: String
     createdAt: String!
     updatedAt: String!
+  }
+
+  enum ExerciseType {
+    ECHAUFFEMENT
+    EXERCICE
+    RECUPERATION
+    RETOUR_AU_CALME
   }
 
   type Like {

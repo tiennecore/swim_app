@@ -1,29 +1,31 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export const queryResolvers = {
     Query: {
-        me: async (_parent: any, _args: any, ctx: any) => {
-            // ⚠️ Ici tu relies à ton auth (par ex. ctx.user.sub venant de Supabase Auth)
-            if (!ctx.user) return null;
-            return prisma.user.findUnique({
-                where: { id: ctx.user.id },
-                include: { profile: true },
+        profiles: async () => {
+            return prisma.profile.findMany();
+        },
+        profile: async (_: any, args: { id: string }) => {
+            return prisma.profile.findUnique({
+                where: { id: args.id },
             });
         },
-
         workouts: async () => {
-            return prisma.workout.findMany({
-                include: { profile: true, blocks: true, likes: true },
-            });
+            return prisma.workout.findMany();
         },
-
         workout: async (_: any, args: { id: string }) => {
             return prisma.workout.findUnique({
                 where: { id: args.id },
-                include: { profile: true, blocks: true, likes: true },
             });
+        },
+        blocks: async () => {
+            return prisma.block.findMany();
+        },
+        exercises: async () => {
+            return prisma.exercise.findMany();
+        },
+        likes: async () => {
+            return prisma.like.findMany();
         },
     },
 };

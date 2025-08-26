@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "auth"]
+  schemas  = ["public"]
 }
 
 // ============================
@@ -16,8 +16,20 @@ model User {
   email     String?  @unique
   profile   Profile?
 
+  customDrills   String[]   
+  customAllures  String[]   
+  poolSize       PoolSize   @default(M25)  // 25m ou 50m
+  distanceDefault Int       @default(100)  // distance par défaut en mètres
+  defaultTimeRepo Int       @default(20)   // temps de repos par défaut en secondes
+
   @@map("users")
-  @@schema("auth")
+  @@schema("public")
+}
+enum PoolSize {
+  M25
+  M50
+
+  @@schema("public")
 }
 
 // ============================
@@ -26,8 +38,13 @@ model User {
 model Profile {
   id       String   @id @db.Uuid
   user     User?    @relation(fields: [id], references: [id])
-  workouts Workout[]
   likes    Like[]
+
+  // Les workouts que j’ai créés
+  createdWorkouts Workout[] @relation("CreatedWorkouts")
+
+  // Les workouts que j’ai ajoutés à mes entraînements
+  addedWorkouts   Workout[] @relation("AddedWorkouts")
 
   @@schema("public")
 }
@@ -37,18 +54,32 @@ model Profile {
 // ============================
 model Workout {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  profile   Profile? @relation(fields: [profileId], references: [id])
+  profile   Profile? @relation("AddedWorkouts",fields: [profileId], references: [id])
   profileId String?  @db.Uuid
 
-  name      String
-  blocks    Block[]
-  likes     Like[]
+  title       String
+  description String?
+  creator      Profile     @relation("CreatedWorkouts", fields: [creatorId], references: [id])
+  creatorId    String      @db.Uuid
+  blocks      Block[]
+  likes       Like[]
+  workoutType  WorkoutType
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([profileId])
   @@index([createdAt])
+  @@schema("public")
+}
+
+enum WorkoutType {
+  ENDURANCE
+  VITESSE_PUISSANCE
+  TECHNIQUE
+  RECUPERATION
+  MIXTE
+
   @@schema("public")
 }
 
@@ -60,7 +91,6 @@ model Block {
   workout   Workout  @relation(fields: [workoutId], references: [id])
   workoutId String   @db.Uuid
 
-  name      String
   exercises Exercise[]
 
   createdAt DateTime @default(now())
@@ -86,6 +116,8 @@ model Exercise {
   drill      String?
   equipment  String[] @db.Text
   details    String?
+  type      ExerciseType
+
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -94,6 +126,16 @@ model Exercise {
   @@index([blockId])
   @@schema("public")
 }
+
+enum ExerciseType {
+  ECHAUFFEMENT     // Échauffement
+  EXERCICE         // Exercice
+  RECUPERATION     // Récupération
+  RETOUR_AU_CALME  // Retour au calme
+
+  @@schema("public")
+}
+
 
 // ============================
 // PUBLIC.SCHEMA → Like

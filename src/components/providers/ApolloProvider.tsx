@@ -9,6 +9,6 @@ const client = new ApolloClient({
     credentials: "include", // utile si tu utilises Supabase avec cookies/session
 });
 
-export function ApolloProvider({ children }: { children: ReactNode }) {
+export function AppApolloProvider({ children }: { children: ReactNode }) {
     return <Provider client={client}>{children}</Provider>;
 }
