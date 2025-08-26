@@ -1,50 +1,45 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { GraphQLContext } from "../context";
 
 export const mutationResolvers = {
     Mutation: {
-        createWorkout: async (_: any, args: { profileId: string; name: string }) => {
-            return prisma.workout.create({
+        createWorkout: (_: any, { title, description }: any, ctx: GraphQLContext) =>
+            ctx.prisma.workout.create({
                 data: {
-                    name: args.name,
-                    profileId: args.profileId,
+                    title,
+                    description,
+                    creatorId: ctx.userId!, // supposé fourni dans le contexte
                 },
+            }),
+
+        claimWorkout: async (_: any, { id }: { id: string }, ctx: GraphQLContext) => {
+            return ctx.prisma.workout.update({
+                where: { id },
+                data: { creatorId: ctx.userId! },
             });
         },
 
-        claimWorkout: async (_: any, args: { workoutId: string; profileId: string }) => {
-            return prisma.workout.update({
-                where: { id: args.workoutId },
-                data: { profileId: args.profileId },
-            });
-        },
-
-        duplicateWorkout: async (_: any, args: { workoutId: string }) => {
-            const workout = await prisma.workout.findUnique({
-                where: { id: args.workoutId },
+        duplicateWorkout: async (_: any, { id }: { id: string }, ctx: GraphQLContext) => {
+            const workout = await ctx.prisma.workout.findUnique({
+                where: { id },
                 include: { blocks: { include: { exercises: true } } },
             });
-
             if (!workout) throw new Error("Workout not found");
 
-            return prisma.workout.create({
+            return ctx.prisma.workout.create({
                 data: {
-                    name: `${workout.name} (copy)`,
-                    profileId: workout.profileId,
+                    title: workout.title + " (copie)",
+                    description: workout.description,
+                    creatorId: ctx.userId!,
+                    workoutType: workout.workoutType,
                     blocks: {
                         create: workout.blocks.map((block) => ({
-                            name: block.name,
+                            order: block.order,
                             exercises: {
                                 create: block.exercises.map((ex) => ({
-                                    category: ex.category,
-                                    value: ex.value,
-                                    unit: ex.unit,
-                                    repetitions: ex.repetitions,
-                                    duration: ex.duration,
-                                    drill: ex.drill,
+                                    name: ex.name,
+                                    type: ex.type,
+                                    distance: ex.distance,
                                     equipment: ex.equipment,
-                                    details: ex.details,
                                 })),
                             },
                         })),
@@ -53,40 +48,45 @@ export const mutationResolvers = {
             });
         },
 
-        toggleLikeWorkout: async (_: any, args: { workoutId: string; profileId: string }) => {
-            const existing = await prisma.like.findFirst({
-                where: { workoutId: args.workoutId, profileId: args.profileId },
+        toggleLikeWorkout: async (_: any, { id }: { id: string }, ctx: GraphQLContext) => {
+            const existing = await ctx.prisma.like.findUnique({
+                where: { userId_workoutId: { userId: ctx.userId!, workoutId: id } },
             });
-
             if (existing) {
-                await prisma.like.delete({ where: { id: existing.id } });
-                return { success: true, message: "Like removed" };
-            } else {
-                await prisma.like.create({
-                    data: { workoutId: args.workoutId, profileId: args.profileId },
-                });
-                return { success: true, message: "Like added" };
+                await ctx.prisma.like.delete({ where: { id: existing.id } });
+                return ctx.prisma.workout.findUnique({ where: { id } });
             }
+            await ctx.prisma.like.create({
+                data: { userId: ctx.userId!, workoutId: id },
+            });
+            return ctx.prisma.workout.findUnique({ where: { id } });
         },
 
-        updateUserProfile: async (_: any, args: { id: string; email?: string }) => {
-            return prisma.profile.update({
+        updateUserProfile: (_: any, args: any, ctx: GraphQLContext) =>
+            ctx.prisma.profile.update({
                 where: { id: args.id },
-                data: { user: { update: { email: args.email ?? undefined } } },
-            });
+                data: {
+                    name: args.name ?? undefined,
+                    customDrills: args.customDrills ?? undefined,
+                    customAllures: args.customAllures ?? undefined,
+                    poolSize: args.poolSize ?? undefined,
+                    distanceDefault: args.distanceDefault ?? undefined,
+                    defaultRepoTime: args.defaultRepoTime ?? undefined,
+                },
+            }),
+
+        deleteWorkout: async (_: any, { id }: { id: string }, ctx: GraphQLContext) => {
+            await ctx.prisma.workout.delete({ where: { id } });
+            return true;
         },
 
-        deleteWorkout: async (_: any, args: { workoutId: string }) => {
-            return prisma.workout.delete({
-                where: { id: args.workoutId },
-            });
-        },
-
-        updateWorkout: async (_: any, args: { workoutId: string; name?: string }) => {
-            return prisma.workout.update({
-                where: { id: args.workoutId },
-                data: { name: args.name ?? undefined },
-            });
-        },
+        updateWorkout: (_: any, { id, title, description }: any, ctx: GraphQLContext) =>
+            ctx.prisma.workout.update({
+                where: { id },
+                data: {
+                    title: title ?? undefined,
+                    description: description ?? undefined,
+                },
+            }),
     },
 };

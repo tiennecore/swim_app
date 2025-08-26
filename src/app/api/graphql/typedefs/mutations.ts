@@ -1,18 +1,22 @@
 import { gql } from "@apollo/client";
 
 export const mutationTypeDefs = gql`
-  type Mutation {
-    createWorkout(profileId: ID!, name: String!): Workout!
-    claimWorkout(workoutId: ID!, profileId: ID!): Workout!
-    duplicateWorkout(workoutId: ID!): Workout!
-    toggleLikeWorkout(workoutId: ID!, profileId: ID!): ToggleLikeResponse!
-    updateUserProfile(id: ID!, email: String): Profile!
-    deleteWorkout(workoutId: ID!): Workout!
-    updateWorkout(workoutId: ID!, name: String): Workout!
-  }
-
-  type ToggleLikeResponse {
-    success: Boolean!
-    message: String!
+  extend type Mutation {
+    createWorkout(title: String!, description: String): Workout!
+    claimWorkout(id: ID!): Workout!
+    duplicateWorkout(id: ID!): Workout!
+    toggleLikeWorkout(id: ID!): Workout!
+    updateUserProfile(
+      id: ID!
+      name: String
+      customDrills: [String!]
+      customAllures: [String!]
+      poolSize: PoolSize
+      distanceDefault: Int
+      defaultRepoTime: Int
+    ): Profile!
+    deleteWorkout(id: ID!): Boolean!
+    updateWorkout(id: ID!, title: String, description: String): Workout!
   }
 `;
+export default mutationTypeDefs;

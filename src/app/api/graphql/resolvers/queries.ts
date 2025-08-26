@@ -1,31 +1,23 @@
-import { prisma } from "@/lib/prisma";
+import { GraphQLContext } from "../context";
 
 export const queryResolvers = {
     Query: {
-        profiles: async () => {
-            return prisma.profile.findMany();
-        },
-        profile: async (_: any, args: { id: string }) => {
-            return prisma.profile.findUnique({
-                where: { id: args.id },
-            });
-        },
-        workouts: async () => {
-            return prisma.workout.findMany();
-        },
-        workout: async (_: any, args: { id: string }) => {
-            return prisma.workout.findUnique({
-                where: { id: args.id },
-            });
-        },
-        blocks: async () => {
-            return prisma.block.findMany();
-        },
-        exercises: async () => {
-            return prisma.exercise.findMany();
-        },
-        likes: async () => {
-            return prisma.like.findMany();
-        },
+        profiles: (_: any, __: any, ctx: GraphQLContext) => ctx.prisma.profile.findMany(),
+        profile: (_: any, { id }: { id: string }, ctx: GraphQLContext) =>
+            ctx.prisma.profile.findUnique({ where: { id } }),
+
+        workouts: (_: any, __: any, ctx: GraphQLContext) =>
+            ctx.prisma.workout.findMany({
+                include: { creator: true, blocks: { include: { exercises: true } }, likes: true },
+            }),
+        workout: (_: any, { id }: { id: string }, ctx: GraphQLContext) =>
+            ctx.prisma.workout.findUnique({
+                where: { id },
+                include: { creator: true, blocks: { include: { exercises: true } }, likes: true },
+            }),
+
+        blocks: (_: any, __: any, ctx: GraphQLContext) => ctx.prisma.block.findMany(),
+        exercises: (_: any, __: any, ctx: GraphQLContext) => ctx.prisma.exercise.findMany(),
+        likes: (_: any, __: any, ctx: GraphQLContext) => ctx.prisma.like.findMany(),
     },
 };
