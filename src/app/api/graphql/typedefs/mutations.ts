@@ -6,6 +6,8 @@ export const mutationTypeDefs = gql`
     claimWorkout(id: ID!): Workout!
     duplicateWorkout(id: ID!): Workout!
     toggleLikeWorkout(id: ID!): Workout!
+    createProfile(id: ID!, email: String!): Profile!
+
     updateUserProfile(
       id: ID!
       name: String

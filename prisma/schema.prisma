@@ -8,68 +8,99 @@ datasource db {
   schemas  = ["public"]
 }
 
-// ============================
-// AUTH.SCHEMA → User
-// ============================
 model User {
-  id        String   @id @db.Uuid
-  email     String?  @unique
-  profile   Profile?
-
-  customDrills   String[]   
-  customAllures  String[]   
-  poolSize       PoolSize   @default(M25)  // 25m ou 50m
-  distanceDefault Int       @default(100)  // distance par défaut en mètres
-  defaultTimeRepo Int       @default(20)   // temps de repos par défaut en secondes
+  id              String   @id @db.Uuid
+  email           String?  @unique
+  customAllures   String[]
+  customDrills    String[]
+  defaultTimeRepo Int      @default(20)
+  distanceDefault Int      @default(100)
+  poolSize        PoolSize @default(M25)
+  profile         Profile?
 
   @@map("users")
   @@schema("public")
 }
-enum PoolSize {
-  M25
-  M50
 
-  @@schema("public")
-}
-
-// ============================
-// PUBLIC.SCHEMA → Profile
-// ============================
 model Profile {
-  id       String   @id @db.Uuid
-  user     User?    @relation(fields: [id], references: [id])
-  likes    Like[]
-
-  // Les workouts que j’ai créés
+  id              String    @id @db.Uuid
+  likes           Like[]
+  user            User      @relation(fields: [id], references: [id])
   createdWorkouts Workout[] @relation("CreatedWorkouts")
-
-  // Les workouts que j’ai ajoutés à mes entraînements
   addedWorkouts   Workout[] @relation("AddedWorkouts")
 
   @@schema("public")
 }
 
-// ============================
-// PUBLIC.SCHEMA → Workout
-// ============================
 model Workout {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  profile   Profile? @relation("AddedWorkouts",fields: [profileId], references: [id])
-  profileId String?  @db.Uuid
-
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId   String?     @db.Uuid
   title       String
   description String?
-  creator      Profile     @relation("CreatedWorkouts", fields: [creatorId], references: [id])
-  creatorId    String      @db.Uuid
+  creatorId   String      @db.Uuid
+  workoutType WorkoutType
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
   blocks      Block[]
   likes       Like[]
-  workoutType  WorkoutType
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  creator     Profile     @relation("CreatedWorkouts", fields: [creatorId], references: [id])
+  profile     Profile?    @relation("AddedWorkouts", fields: [profileId], references: [id])
 
   @@index([profileId])
   @@index([createdAt])
+  @@schema("public")
+}
+
+model Block {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workoutId String     @db.Uuid
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  workout   Workout    @relation(fields: [workoutId], references: [id])
+  exercises Exercise[]
+
+  @@index([workoutId])
+  @@schema("public")
+}
+
+model Exercise {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  blockId     String       @db.Uuid
+  category    String
+  value       Int?
+  unit        String?
+  repetitions Int?
+  duration    Int?
+  drill       String?
+  equipment   String[]
+  details     String?
+  type        ExerciseType
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  block       Block        @relation(fields: [blockId], references: [id])
+
+  @@index([category])
+  @@index([blockId])
+  @@schema("public")
+}
+
+model Like {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId String?  @db.Uuid
+  workoutId String?  @db.Uuid
+  createdAt DateTime @default(now())
+  profile   Profile? @relation(fields: [profileId], references: [id])
+  workout   Workout? @relation(fields: [workoutId], references: [id])
+
+  @@index([workoutId])
+  @@index([profileId])
+  @@schema("public")
+}
+
+enum PoolSize {
+  M25
+  M50
+
   @@schema("public")
 }
 
@@ -83,74 +114,11 @@ enum WorkoutType {
   @@schema("public")
 }
 
-// ============================
-// PUBLIC.SCHEMA → Block
-// ============================
-model Block {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  workout   Workout  @relation(fields: [workoutId], references: [id])
-  workoutId String   @db.Uuid
-
-  exercises Exercise[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([workoutId])
-  @@schema("public")
-}
-
-// ============================
-// PUBLIC.SCHEMA → Exercise
-// ============================
-model Exercise {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  block     Block    @relation(fields: [blockId], references: [id])
-  blockId   String   @db.Uuid
-
-  category   String
-  value      Int?
-  unit       String?
-  repetitions Int?
-  duration   Int?
-  drill      String?
-  equipment  String[] @db.Text
-  details    String?
-  type      ExerciseType
-
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([category])
-  @@index([blockId])
-  @@schema("public")
-}
-
 enum ExerciseType {
-  ECHAUFFEMENT     // Échauffement
-  EXERCICE         // Exercice
-  RECUPERATION     // Récupération
-  RETOUR_AU_CALME  // Retour au calme
+  ECHAUFFEMENT
+  EXERCICE
+  RECUPERATION
+  RETOUR_AU_CALME
 
-  @@schema("public")
-}
-
-
-// ============================
-// PUBLIC.SCHEMA → Like
-// ============================
-model Like {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  profile   Profile? @relation(fields: [profileId], references: [id])
-  profileId String?  @db.Uuid
-
-  workout   Workout? @relation(fields: [workoutId], references: [id])
-  workoutId String?  @db.Uuid
-
-  createdAt DateTime @default(now())
-
-  @@index([workoutId])
-  @@index([profileId])
   @@schema("public")
 }

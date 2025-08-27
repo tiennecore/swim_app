@@ -61,7 +61,18 @@ export const mutationResolvers = {
             });
             return ctx.prisma.workout.findUnique({ where: { id } });
         },
-
+        createProfile: async (
+            _parent: unknown,
+            args: { id: string; email: string },
+            ctx: GraphQLContext
+        ) => {
+            return ctx.prisma.profile.create({
+                data: {
+                    id: args.id, // correspond au user.id de Supabase
+                    email: args.email,
+                },
+            });
+        },
         updateUserProfile: (_: any, args: any, ctx: GraphQLContext) =>
             ctx.prisma.profile.update({
                 where: { id: args.id },

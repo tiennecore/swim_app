@@ -1,10 +1,8 @@
-// src/lib/supabase/client.ts
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from '@supabase/ssr';
 
-// Crée un client Supabase pour le "côté client" (navigateur)
-export function createClient() {
+export function createSupabaseBrowserClient() {
     return createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    );
 }

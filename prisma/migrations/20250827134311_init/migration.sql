@@ -1,4 +1,7 @@
 -- CreateEnum
+CREATE TYPE "public"."PoolSize" AS ENUM ('M25', 'M50');
+
+-- CreateEnum
 CREATE TYPE "public"."WorkoutType" AS ENUM ('ENDURANCE', 'VITESSE_PUISSANCE', 'TECHNIQUE', 'RECUPERATION', 'MIXTE');
 
 -- CreateEnum
@@ -8,6 +11,11 @@ CREATE TYPE "public"."ExerciseType" AS ENUM ('ECHAUFFEMENT', 'EXERCICE', 'RECUPE
 CREATE TABLE "public"."users" (
     "id" UUID NOT NULL,
     "email" TEXT,
+    "customAllures" TEXT[],
+    "customDrills" TEXT[],
+    "defaultTimeRepo" INTEGER NOT NULL DEFAULT 20,
+    "distanceDefault" INTEGER NOT NULL DEFAULT 100,
+    "poolSize" "public"."PoolSize" NOT NULL DEFAULT 'M25',
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -100,10 +108,10 @@ CREATE INDEX "Like_profileId_idx" ON "public"."Like"("profileId");
 ALTER TABLE "public"."Profile" ADD CONSTRAINT "Profile_id_fkey" FOREIGN KEY ("id") REFERENCES "public"."users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Workout" ADD CONSTRAINT "Workout_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "public"."Profile"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."Workout" ADD CONSTRAINT "Workout_creatorId_fkey" FOREIGN KEY ("creatorId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Workout" ADD CONSTRAINT "Workout_creatorId_fkey" FOREIGN KEY ("creatorId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."Workout" ADD CONSTRAINT "Workout_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "public"."Profile"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Block" ADD CONSTRAINT "Block_workoutId_fkey" FOREIGN KEY ("workoutId") REFERENCES "public"."Workout"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

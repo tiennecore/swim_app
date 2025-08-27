@@ -1,17 +1,23 @@
-// src/app/api/graphql/context.ts
+import type { NextRequest } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
-export interface GraphQLContext {
-    profileId?: string | null;
-}
+export async function buildContext(req: NextRequest) {
+    const supabase = createSupabaseServerClient()
+    const authHeader = req.headers.get('authorization')
+    let userId: string | null = null
 
-/**
- * Construit le contexte GraphQL (par ex : utilisateur courant)
- */
-export async function buildContext(req: Request): Promise<GraphQLContext> {
-    // Exemple basique : récupérer un header
-    const userId = req.headers.get('x-user-id'); // ou Authorization si tu veux parser un JWT
+    if (authHeader) {
+        const token = authHeader.replace('Bearer ', '')
+        const { data: { user }, error } = await supabase.auth.getUser(token)
+
+        if (user && !error) {
+            userId = user.id
+        }
+    }
 
     return {
-        profileId: userId ?? null,
-    };
+        prisma,
+        userId,
+    }
 }
